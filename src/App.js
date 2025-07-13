@@ -1,8 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-// Tone.js is assumed to be loaded globally by the environment.
-// If running this code outside of a specific environment, ensure Tone.js is loaded
-// via a script tag in your HTML, e.g.:
-// <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
 
 // Predefined array of distinct colors for words to cycle through.
 const WORD_COLORS = [
@@ -71,28 +67,6 @@ const App = () => {
     // Ref to keep track of the next color index to assign to new words.
     // Using useRef to ensure it doesn't reset on re-renders.
     const nextColorIndex = useRef(0);
-
-    // Ref for the Tone.js synth
-    const synthRef = useRef(null);
-
-    // Initialize Tone.js synth on component mount
-    useEffect(() => {
-        // Ensure Tone.js is available before trying to use it
-        if (typeof Tone !== 'undefined' && !synthRef.current) {
-            // Tone.start() is necessary to enable audio on user interaction
-            // Add a one-time event listener to start audio context on first user interaction
-            document.documentElement.addEventListener('click', () => {
-                if (Tone.context.state !== 'running') {
-                    Tone.start().then(() => {
-                        console.log("Tone.js audio context started.");
-                    }).catch(e => console.error("Failed to start Tone.js audio context:", e));
-                }
-            }, { once: true });
-
-            // Create a simple synth
-            synthRef.current = new Tone.Synth().toDestination();
-        }
-    }, []); // Empty dependency array ensures this runs once on mount
 
     // Function to calculate the letter count for a given string.
     // This helper function now counts all characters, assuming they are "letters" for total count.
@@ -316,13 +290,10 @@ const App = () => {
                     const nextLetterIndex = currentLetterIndex + 1;
                     const newLastPlacedCoords = [rowIndex, colIndex];
 
-                    // If all letters have been placed, deselect the word and play sound.
+                    // If all letters have been placed, deselect the word.
                     if (nextLetterIndex >= selectedWordText.length) {
                         setSelectedWordData({ id: null, text: null, color: null, letterIndex: 0, lastPlacedCoords: null });
-                        // Play a confirmation sound when the last letter is placed
-                        if (synthRef.current && typeof Tone !== 'undefined' && Tone.context.state === 'running') {
-                            synthRef.current.triggerAttackRelease("C5", "8n"); // C5 note for an 8th note duration
-                        }
+                        // Removed the Tone.js sound trigger here
                     } else {
                         // Otherwise, just update the letter index and last placed coords for the next click.
                         setSelectedWordData(prevData => ({
