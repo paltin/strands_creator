@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+// Tone.js is assumed to be loaded globally by the environment.
+// If running this code outside of a specific environment, ensure Tone.js is loaded
+// via a script tag in your HTML, e.g.:
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
 
 // Predefined array of distinct colors for words to cycle through.
 const WORD_COLORS = [
@@ -67,6 +71,28 @@ const App = () => {
     // Ref to keep track of the next color index to assign to new words.
     // Using useRef to ensure it doesn't reset on re-renders.
     const nextColorIndex = useRef(0);
+
+    // Ref for the Tone.js synth
+    const synthRef = useRef(null);
+
+    // Initialize Tone.js synth on component mount
+    useEffect(() => {
+        // Ensure Tone.js is available before trying to use it
+        if (typeof Tone !== 'undefined' && !synthRef.current) {
+            // Tone.start() is necessary to enable audio on user interaction
+            // Add a one-time event listener to start audio context on first user interaction
+            document.documentElement.addEventListener('click', () => {
+                if (Tone.context.state !== 'running') {
+                    Tone.start().then(() => {
+                        console.log("Tone.js audio context started.");
+                    }).catch(e => console.error("Failed to start Tone.js audio context:", e));
+                }
+            }, { once: true });
+
+            // Create a simple synth
+            synthRef.current = new Tone.Synth().toDestination();
+        }
+    }, []); // Empty dependency array ensures this runs once on mount
 
     // Function to calculate the letter count for a given string.
     // This helper function now counts all characters, assuming they are "letters" for total count.
@@ -290,9 +316,13 @@ const App = () => {
                     const nextLetterIndex = currentLetterIndex + 1;
                     const newLastPlacedCoords = [rowIndex, colIndex];
 
-                    // If all letters have been placed, deselect the word.
+                    // If all letters have been placed, deselect the word and play sound.
                     if (nextLetterIndex >= selectedWordText.length) {
                         setSelectedWordData({ id: null, text: null, color: null, letterIndex: 0, lastPlacedCoords: null });
+                        // Play a confirmation sound when the last letter is placed
+                        if (synthRef.current && typeof Tone !== 'undefined' && Tone.context.state === 'running') {
+                            synthRef.current.triggerAttackRelease("C5", "8n"); // C5 note for an 8th note duration
+                        }
                     } else {
                         // Otherwise, just update the letter index and last placed coords for the next click.
                         setSelectedWordData(prevData => ({
@@ -339,7 +369,7 @@ const App = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'grades.csv'; // Changed to grades.csv
+        a.download = 'strands_layout.csv'; // Changed to strands_layout.csv
         document.body.appendChild(a);
         a.click(); // Programmatically click the link to trigger download
         document.body.removeChild(a); // Clean up the DOM
@@ -753,9 +783,8 @@ const App = () => {
                     </div>
 
                     {/* Display area for total letter count across all words. */}
-                    {/* Moved here */}
-                    <div className="info-box info-box-blue" style={{ marginTop: '0', marginBottom: '0.75rem' }}> {/* Reduced margin-bottom */}
-                        <p className="info-box-text">
+                    <div className="info-box info-box-blue" style={{ marginTop: '0', marginBottom: '0.5rem', padding: '0.5rem' }}>
+                        <p className="info-box-text" style={{ fontSize: '0.875rem' }}>
                             Total letters across all words: <span style={{ fontWeight: 'bold', color: '#1c4d8f' }}>{totalLetterCount} / 48</span>
                         </p>
                     </div>
@@ -791,7 +820,7 @@ const App = () => {
 
                     {/* Display area for the list of entered words. */}
                     {enteredWords.length === 0 ? (
-                        <div className="info-box info-box-yellow" style={{ marginTop: '0.75rem' }}> {/* Adjusted margin-top */}
+                        <div className="info-box info-box-yellow" style={{ marginTop: '0.75rem' }}>
                             <p className="info-box-text">No words added yet. Start typing!</p>
                         </div>
                     ) : (
@@ -920,9 +949,9 @@ const App = () => {
                     <button
                         onClick={handleExport}
                         className="export-button"
-                        title="Export grid Data to grades.csv"
+                        title="Export grid data to strands_layout.csv"
                     >
-                        Export Grid data to grades.csv
+                        Export Grid Data to strands_layout.csv
                     </button>
                 </div>
             </div>
